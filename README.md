@@ -1,1 +1,1 @@
-# -S15-Normalizaci-n-de-Bases-de-Datos
+# -S15-Normalización-de-Bases-de-Datos
