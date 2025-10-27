@@ -6,6 +6,20 @@ Aplicar los principios de normalización de bases de datos relacionales hasta la
 
 ## Contexto
 Durante la clase revisamos la importancia de la normalización y las cinco primeras formas normales (1NF a 5NF). En esta tarea pondrás en práctica esos conceptos trabajando con un caso realista que requiere analizar y reorganizar datos para mejorar su estructura.
+Tablas del esquema (lista general)
+Persona (persona_id, nombre, apellido, calle, numero, ciudad_id, codigo_postal)
+Telefonos (telefono_id, persona_id, numero)
+Producto (producto_id, nombre, descripcion, precio_unitario)
+Venta (venta_id, fecha, cliente_id, total)
+VentaDetalle (venta_id, producto_id, cantidad) -- PK compuesta: (venta_id, producto_id)
+Cliente (cliente_id, nombre, ciudad_id)
+Ciudad (ciudad_id, nombre, pais_id)
+Pais (pais_id, nombre)
+Empleado (empleado_id, nombre, departamento_id)
+Departamento (departamento_id, nombre, jefe_id)
+Aula (aula_id, nombre, profesor_id)
+Curso (curso_id, nombre, creditos)
+CursoAula (curso_id, aula_id)
 
 ## Ejercicio práctico
 Una universidad necesita registrar información sobre los cursos que imparte, los profesores que los enseñan y los estudiantes que los inscriben. Actualmente, los datos se guardan en una única tabla llamada `Registro_Cursos` con la siguiente estructura:
@@ -20,6 +34,22 @@ Una universidad necesita registrar información sobre los cursos que imparte, lo
 ## Primera Forma Normal (1NF)
 Una tabla está en 1NF si todos los atributos contienen valores atómicos. Se deben eliminar los grupos repetitivos.
 
+Qué exige:
+
+Atributos atómicos y valores únicos por celda.
+Tablas y cambios aplicados:
+
+Persona
+Se separó la dirección compuesta: calle, numero, ciudad_id, codigo_postal.
+Se eliminó cualquier columna con múltiples valores (ej. telefonos).
+Telefonos
+Nueva tabla para almacenar números atómicos: (telefono_id, persona_id, numero).
+Producto, Venta, Cliente, Empleado, Curso
+Verificación y separación de campos que contuvieran listas o valores repetidos en una celda.
+Comentarios:
+
+Resultado: cada tabla contiene atributos atómicos; las filas están identificadas por claves primarias (ej. persona_id, producto_id).
+
 ### Estructura resultante:
 
 | ID_Registro | Curso            | Profesor       | Email_Profesor     | Estudiante | Email_Estudiante     | Créditos | Facultad    |
@@ -31,10 +61,30 @@ Una tabla está en 1NF si todos los atributos contienen valores atómicos. Se de
 | 2           | Programación Web | Carlos López   | carlos@uni.edu      | Ana        | ana@uni.edu           | 5        | Ingeniería  |
 | 2           | Programación Web | Carlos López   | carlos@uni.edu      | Lucía      | lucia@uni.edu         | 5        | Ingeniería  |
 
+
 ---
 
 ## Segunda Forma Normal (2NF)
 Una tabla está en 2NF si está en 1NF y todos los atributos no clave dependen completamente de la clave primaria. Se eliminan dependencias parciales separando la información en múltiples tablas.
+
+Qué exige:
+
+Estar en 1NF.
+No debe haber dependencia parcial respecto a una PK compuesta.
+Tablas y cambios aplicados:
+
+VentaDetalle (venta_id, producto_id, cantidad) — PK compuesta: (venta_id, producto_id)
+Extracción de atributos dependientes sólo de producto_id:
+Si existía precio_unitario o descripcion_producto en VentaDetalle, se movieron a la tabla Producto.
+VentaDetalle queda con los campos propios de la relación venta-producto (ej. cantidad).
+Producto
+Contiene precio_unitario, descripcion y demás atributos que dependen únicamente de producto_id.
+Otras PK compuestas (si existieran)
+Se revisaron y se movieron atributos a tablas independientes cuando dependían solo de una parte de la PK.
+Comentarios:
+
+Evita redundancia como repetir el precio del producto por cada línea de venta.
+
 
 ### Tablas resultantes:
 
@@ -86,6 +136,30 @@ Una tabla está en 2NF si está en 1NF y todos los atributos no clave dependen c
 ## Tercera Forma Normal (3NF)
 Una tabla está en 3NF si está en 2NF y no existen dependencias transitivas. La facultad depende del curso, no del registro, por lo que se separa en una tabla aparte.
 
+Qué exige:
+
+Estar en 2NF.
+Eliminar dependencias transitivas (atributos no clave que dependen de otros atributos no clave).
+Tablas y cambios aplicados:
+
+Cliente
+Antes: Cliente tenía ciudad y pais como columnas de texto.
+Después: Cliente (cliente_id, nombre, ciudad_id) → referencia a Ciudad.
+Ciudad
+Ciudad (ciudad_id, nombre, pais_id) → referencia a Pais.
+Pais
+Pais (pais_id, nombre).
+Empleado
+Antes: Empleado podía contener departamento_nombre y departamento_jefe.
+Después: Empleado (empleado_id, nombre, departamento_id) → referencia a Departamento.
+Departamento
+Departamento (departamento_id, nombre, jefe_id).
+Persona
+Validación de dependencias transitivas (ej. codigo_postal depende de ciudad_id) y normalización si correspondía.
+Comentarios:
+
+Se eliminaron dependencias transitivas moviendo datos a tablas propias (Ciudad, Pais, Departamento), dejando solo claves foráneas en las tablas principales.
+
 **Tabla Facultad**
 
 | ID_Facultad | Nombre      |
@@ -103,6 +177,22 @@ Una tabla está en 3NF si está en 2NF y no existen dependencias transitivas. La
 
 ## Cuarta Forma Normal (4NF)
 Una tabla está en 4NF si está en 3NF y no contiene dependencias multivaluadas. Si un curso puede tener múltiples profesores y múltiples estudiantes independientemente, se deben separar en relaciones distintas.
+
+Qué exige:
+
+Para toda dependencia funcional X -> Y, X debe ser una clave candidata.
+Tablas y cambios aplicados (ejemplos concretos del esquema):
+
+Aula / CursoAula / Curso
+Problema detectado: si existía la regla de negocio "aula determina profesor" (aula -> profesor_id) y había una tabla combinada con curso, profesor y aula, surgía una dependencia donde aula no era clave.
+Solución:
+Aula (aula_id, nombre, profesor_id) — ahora aula_id determina profesor_id.
+CursoAula (curso_id, aula_id) — relación entre Curso y Aula.
+Revisión general
+Se revisaron tablas donde un determinante no era clave candidata y se descompusieron para que el determinante resultara clave en su tabla.
+Comentarios:
+
+Con BCNF se eliminaron dependencias funcionales no deseadas que causaban anomalías en inserciones/actualizaciones.
 
 **Tablas adicionales:**
 
